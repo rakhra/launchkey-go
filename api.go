@@ -107,8 +107,8 @@ func (api *LaunchKey) ValidatePins(pins []string, device string) bool {
 func (api *LaunchKey) createEndPoint(path string) *url.URL {
   u := url.URL {
     Scheme : api.Scheme,
-    Host : api.Host + "/" + api.Version,
-    Path : path,
+    Host : api.Host,
+    Path : "/" + api.Version + "/" + path,
   }
   return &u
 }
@@ -117,13 +117,13 @@ func (api *LaunchKey) Ping() (launchKeyTime string, publicKey string) {
   url := api.createEndPoint("ping")
   response, err := http.Get(url.String())
   if err != nil {
-    return
+    panic(err)
   }
   
   pingResponse := PingResponse{}
   err = json.NewDecoder(response.Body).Decode(&pingResponse)
   if err != nil {
-    return
+    panic(err)
   }
 
   return pingResponse.LaunchkeyTime, pingResponse.Key
@@ -180,8 +180,7 @@ func (api *LaunchKey) Auth(username string, session bool) (authRequest string, a
 }
 
 func (api *LaunchKey) Logout(authRequest string) (success bool, err *LaunchKeyAPIError) {
-  success, err = api.Notify("Revoke", true, authRequest)
-  return
+  return api.Notify("Revoke", true, authRequest)
 }
 
 func (api *LaunchKey) IsAuthorised(authRequest string, authPackage string) (validPin bool, err *LaunchKeyAPIError) {    
@@ -231,7 +230,7 @@ func (api *LaunchKey) Poll(authRequest string) (auth string, userHash string, ap
   response, err := http.Get(url.String())
 
   if err != nil {
-    return
+    panic(err)
   }
 
   apiError = &LaunchKeyAPIError{}
@@ -243,7 +242,7 @@ func (api *LaunchKey) Poll(authRequest string) (auth string, userHash string, ap
     if err != nil {
       apiError.Message = err.Error()
     }
-    return
+    return "", "", apiError
   } 
 
   pollResponse := &PollResponse{}
@@ -251,7 +250,7 @@ func (api *LaunchKey) Poll(authRequest string) (auth string, userHash string, ap
 
   if err != nil {
     apiError.Message = err.Error()
-    return
+    return "", "", apiError
   }
 
   return pollResponse.Auth, pollResponse.UserHash, nil
